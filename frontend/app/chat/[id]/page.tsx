@@ -9,6 +9,7 @@ import { FloatingOrbs } from "@/components/floating-orbs";
 import { Particles } from "@/components/particles";
 import { SettingsModal } from "@/components/settings-modal";
 import { useSidebar } from "@/components/sidebar-provider";
+import { API_URL } from "@/lib/api";
 type Message = {
   role: "user" | "assistant";
   content: string;
@@ -38,7 +39,7 @@ export default function ChatPage() {
     const loadChat = async () => {
       try {
         const response = await fetch(
-          `http://localhost:5000/api/chat/${chatId}`
+          `${API_URL}/api/chat/${chatId}`
         );
 
         const data = await response.json();
@@ -93,7 +94,7 @@ export default function ChatPage() {
 
     try {
       const response = await fetch(
-        "http://localhost:5000/api/chat",
+        `${API_URL}/api/chat`,
         {
           method: "POST",
           headers: {

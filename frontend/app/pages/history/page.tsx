@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { useRouter } from "next/navigation"
+import { API_URL } from "@/lib/api"
 
 interface HistoryItem {
   id: string
@@ -34,7 +35,7 @@ export default function HistoryPage() {
   const fetchHistory = async () => {
     try {
       const response = await fetch(
-        "http://localhost:5000/api/history"
+        `${API_URL}/api/history`
       )
 
       const data = await response.json()

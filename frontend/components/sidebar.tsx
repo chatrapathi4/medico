@@ -31,6 +31,7 @@ import {
 } from "lucide-react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { useTheme } from "next-themes";
+import { API_URL } from "@/lib/api";
 
 import {
   DropdownMenu,
@@ -50,7 +51,7 @@ interface SidebarProps {
   isCollapsed: boolean
   onToggleCollapse: () => void
   onClose: () => void
-  onSettingsClick: () => void
+  onSettingsClick?: () => void
 }
 
 const menuItems = [
@@ -76,7 +77,7 @@ export function Sidebar({ isOpen, isCollapsed, onToggleCollapse, onClose, onSett
     const fetchHistory = async () => {
       try {
         const response = await fetch(
-          "http://localhost:5000/api/history"
+          `${API_URL}/api/history`
         );
 
         const data = await response.json();
