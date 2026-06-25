@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { 
   Search, 
   History, 
@@ -31,6 +31,7 @@ import {
 } from "lucide-react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { useTheme } from "next-themes";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -67,6 +68,24 @@ export function Sidebar({ isOpen, isCollapsed, onToggleCollapse, onClose, onSett
   const [openShortcuts, setOpenShortcuts] = useState(false);
   const { theme, setTheme } = useTheme();
   const [logoHovered, setLogoHovered] = useState(false);
+  const [history, setHistory] = useState([]);
+  useEffect(() => {
+  fetchHistory();
+    }, []);
+
+    const fetchHistory = async () => {
+      try {
+        const response = await fetch(
+          "http://localhost:5000/api/history"
+        );
+
+        const data = await response.json();
+
+        setHistory(data.chats);
+      } catch (error) {
+        console.error(error);
+      }
+    };
 
   return (
     

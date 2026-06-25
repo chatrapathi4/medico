@@ -3,10 +3,12 @@
 import { useEffect, useRef, useState } from "react"
 import { Search, ArrowRight, ExternalLink, CheckCircle2, Sparkles } from "lucide-react"
 import { cn } from "@/lib/utils"
+import ReactMarkdown from "react-markdown";
 
 interface Message {
   role: "user" | "assistant"
   content: string
+  animate?: boolean
   sources?: Array<{
     name: string
     title: string
@@ -56,6 +58,7 @@ export function ChatInterface({ messages, query, onQueryChange, onSearch, isTypi
             ) : (
               <AssistantMessage 
                 content={message.content} 
+                animate={message.animate ?? false}
                 sources={message.sources}
                 keyPoints={message.keyPoints}
               />
@@ -131,32 +134,41 @@ function UserMessage({ content }: { content: string }) {
 
 function AssistantMessage({ 
   content, 
+  animate = false,
   sources,
   keyPoints 
 }: { 
   content: string
+  animate?: boolean
   sources?: Message["sources"]
   keyPoints?: string[]
 }) {
-  const [displayedContent, setDisplayedContent] = useState("")
-  const [isAnimating, setIsAnimating] = useState(true)
+    const [displayedContent, setDisplayedContent] = useState(animate ? "" : content)
+    const [isAnimating, setIsAnimating] = useState(animate)
 
-  useEffect(() => {
-    if (!content) return
-    
-    let index = 0
-    const interval = setInterval(() => {
-      if (index < content.length) {
-        setDisplayedContent(content.slice(0, index + 1))
-        index++
-      } else {
-        clearInterval(interval)
+    useEffect(() => {
+      if (!animate) {
+        setDisplayedContent(content)
         setIsAnimating(false)
+        return
       }
-    }, 10)
-    
-    return () => clearInterval(interval)
-  }, [content])
+
+      let index = 0
+
+      const interval = setInterval(() => {
+        if (index < content.length) {
+          setDisplayedContent(
+            content.slice(0, index + 1)
+          )
+          index++
+        } else {
+          clearInterval(interval)
+          setIsAnimating(false)
+        }
+      }, 10)
+
+      return () => clearInterval(interval)
+    }, [content, animate])
 
   return (
     <div className="space-y-4 max-w-3xl w-full">
@@ -172,10 +184,40 @@ function AssistantMessage({
           </div>
         </div>
         
-        <p className="text-foreground leading-relaxed">
-          {displayedContent}
-          {isAnimating && <span className="animate-pulse">|</span>}
-        </p>
+        <div className="
+            max-w-none
+            text-foreground
+
+            [&_h1]:text-3xl
+            [&_h1]:font-bold
+            [&_h1]:mb-4
+
+            [&_h2]:text-xl
+            [&_h2]:font-semibold
+            [&_h2]:mt-6
+            [&_h2]:mb-3
+            [&_h2]:text-primary
+
+            [&_p]:mb-4
+            [&_p]:leading-8
+
+            [&_ul]:list-disc
+            [&_ul]:pl-6
+            [&_ul]:mb-4
+
+            [&_li]:mb-2
+
+            [&_strong]:font-bold
+            [&_strong]:text-foreground
+          ">
+          <ReactMarkdown>
+            {displayedContent}
+          </ReactMarkdown>
+
+          {isAnimating && (
+            <span className="animate-pulse text-primary">|</span>
+          )}
+        </div>
       </div>
       
       {/* Key Points */}
