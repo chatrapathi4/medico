@@ -52,3 +52,36 @@ export async function getMessages(chatId) {
 
   return data;
 }
+export async function renameChat(chatId, title) {
+  const { error } = await supabase
+    .from("chats")
+    .update({
+      title,
+    })
+    .eq("id", chatId);
+
+  if (error) throw error;
+}
+
+export async function togglePin(chatId) {
+  // Get current pin state
+  const { data, error } = await supabase
+    .from("chats")
+    .select("pinned")
+    .eq("id", chatId)
+    .single();
+
+  if (error) throw error;
+
+  // Toggle it
+  const { error: updateError } = await supabase
+    .from("chats")
+    .update({
+      pinned: !data.pinned,
+    })
+    .eq("id", chatId);
+
+  if (updateError) throw updateError;
+
+  return !data.pinned;
+}

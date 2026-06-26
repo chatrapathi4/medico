@@ -1,13 +1,13 @@
 import { supabase } from "../config/supabase.js";
 
+
 export const getChats = async (req, res) => {
   try {
     const { data, error } = await supabase
       .from("chats")
       .select("*")
-      .order("created_at", {
-        ascending: false,
-      });
+      .order("pinned", { ascending: false })
+      .order("created_at", { ascending: false,});
 
     if (error) throw error;
 
@@ -24,3 +24,4 @@ export const getChats = async (req, res) => {
     });
   }
 };
+

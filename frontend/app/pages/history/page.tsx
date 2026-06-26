@@ -3,30 +3,49 @@
 import { useEffect, useState } from "react"
 import {
   History,
-  Trash2,
   Search,
   Calendar,
   ChevronRight,
+  MoreHorizontal,
+  Pencil,
+  Pin,
+  Trash2,
 } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { useRouter } from "next/navigation"
 import { API_URL } from "@/lib/api"
+import { DeleteChatDialog } from "@/components/delete-chat-dialog";
+import { RenameChatDialog } from "@/components/rename-chat-dialog";
 
 interface HistoryItem {
   id: string
   title: string
   created_at: string
+  pinned: boolean
 }
 
 export default function HistoryPage() {
   const router = useRouter()
 
-  const [history, setHistory] =
-    useState<HistoryItem[]>([])
+  const [history, setHistory] = useState<HistoryItem[]>([])
 
-  const [loading, setLoading] =
-    useState(true)
+  const [loading, setLoading] = useState(true)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  const [selectedChat, setSelectedChat] = useState<HistoryItem | null>(null);
+
+  const [deleting, setDeleting] = useState(false);
+  const [renameOpen, setRenameOpen] = useState(false);
+
+  const [renaming, setRenaming] = useState(false);
 
   useEffect(() => {
     fetchHistory()
@@ -49,6 +68,123 @@ export default function HistoryPage() {
       setLoading(false)
     }
   }
+ const deleteChat = async () => {
+  if (!selectedChat) return;
+
+  setDeleting(true);
+
+  try {
+    const response = await fetch(
+      `${API_URL}/api/chat/${selectedChat.id}`,
+      {
+        method: "DELETE",
+      }
+    );
+
+    const data = await response.json();
+
+    if (data.success) {
+      setHistory((prev) =>
+        prev.filter(
+          (chat) => chat.id !== selectedChat.id
+        )
+      );
+
+      setDeleteDialogOpen(false);
+      setSelectedChat(null);
+    }
+  } catch (error) {
+    console.error(error);
+  } finally {
+    setDeleting(false);
+  }
+};
+
+const renameChat = async (
+  title: string
+) => {
+  if (!selectedChat) return;
+
+  setRenaming(true);
+
+  try {
+    const response = await fetch(
+      `${API_URL}/api/chat/${selectedChat.id}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+        body: JSON.stringify({
+          title,
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (data.success) {
+      setHistory((prev) =>
+        prev.map((chat) =>
+          chat.id === selectedChat.id
+            ? {
+                ...chat,
+                title,
+              }
+            : chat
+        )
+      );
+
+      setRenameOpen(false);
+      setSelectedChat(null);
+    }
+  } catch (error) {
+    console.error(error);
+  } finally {
+    setRenaming(false);
+  }
+};
+
+const togglePin = async (chat: HistoryItem) => {
+  try {
+    const response = await fetch(
+      `${API_URL}/api/chat/${chat.id}/pin`,
+      {
+        method: "PATCH",
+      }
+    );
+
+    const data = await response.json();
+
+    if (data.success) {
+      setHistory((prev) => {
+        const updated = prev.map((item) =>
+          item.id === chat.id
+            ? {
+                ...item,
+                pinned: data.pinned,
+              }
+            : item
+        );
+
+        // Keep pinned chats on top
+        return updated.sort((a, b) => {
+          if (a.pinned === b.pinned) {
+            return (
+              new Date(b.created_at).getTime() -
+              new Date(a.created_at).getTime()
+            );
+          }
+
+          return a.pinned ? -1 : 1;
+        });
+      });
+    }
+  } catch (error) {
+    console.error(error);
+  }
+};
 
   const openChat = (id: string) => {
     router.push(`/chat/${id}`)
@@ -128,9 +264,15 @@ export default function HistoryPage() {
                   </div>
 
                   <div className="min-w-0">
-                    <h3 className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors">
-                      {item.title}
-                    </h3>
+                    <div className="flex items-center gap-2 min-w-0">
+                      {item.pinned && (
+                        <Pin className="h-4 w-4 text-primary fill-primary flex-shrink-0" />
+                      )}
+
+                      <h3 className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors">
+                        {item.title}
+                      </h3>
+                    </div>
 
                     <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                       <span className="flex items-center gap-1">
@@ -149,7 +291,64 @@ export default function HistoryPage() {
                   </div>
                 </div>
 
-                <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                <div className="flex items-center gap-2">
+                  <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+
+                    <DropdownMenuContent
+                      align="end"
+                      className="w-48"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedChat(item);
+                          setRenameOpen(true);
+                        }}
+                      >
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Rename
+                      </DropdownMenuItem>
+
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          togglePin(item);
+                        }}
+                      >
+                        <Pin className="mr-2 h-4 w-4" />
+
+                        {item.pinned ? "Unpin Chat" : "Pin Chat"}
+                      </DropdownMenuItem>
+
+                      <DropdownMenuSeparator />
+
+                      <DropdownMenuItem
+                        className="text-red-500 focus:text-red-500"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedChat(item);
+                          setDeleteDialogOpen(true);
+                        }}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete Chat
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
             </Card>
           ))}
@@ -177,6 +376,20 @@ export default function HistoryPage() {
           </Button>
         </div>
       )}
+      <DeleteChatDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={deleteChat}
+        chatTitle={selectedChat?.title ?? ""}
+        loading={deleting}
+      />
+      <RenameChatDialog
+        open={renameOpen}
+        onOpenChange={setRenameOpen}
+        title={selectedChat?.title ?? ""}
+        loading={renaming}
+        onSave={renameChat}
+      />
     </div>
   )
 }

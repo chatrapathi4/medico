@@ -4,6 +4,11 @@ import {
   saveMessage,
   getMessages,
 } from "../services/chatService.js";
+import { supabase } from "../config/supabase.js";
+import {
+  renameChat as renameChatService,
+} from "../services/chatService.js";
+import { togglePin } from "../services/chatService.js";
 
 export const chat = async (req, res) => {
   try {
@@ -65,6 +70,95 @@ export const getChat = async (req, res) => {
 
     res.status(500).json({
       success: false,
+    });
+  }
+};
+
+export const deleteChat = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Delete all messages first
+    const { error: messageError } = await supabase
+      .from("messages")
+      .delete()
+      .eq("chat_id", id);
+
+    if (messageError) {
+      throw messageError;
+    }
+
+    // Delete chat
+    const { error: chatError } = await supabase
+      .from("chats")
+      .delete()
+      .eq("id", id);
+
+    if (chatError) {
+      throw chatError;
+    }
+
+    res.json({
+      success: true,
+      message: "Chat deleted successfully",
+    });
+
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete chat",
+    });
+  }
+};
+
+export const renameChat = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title } = req.body;
+
+    if (!title?.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Title is required",
+      });
+    }
+
+    await renameChatService(id, title.trim());
+
+    res.json({
+      success: true,
+      message: "Chat renamed successfully",
+    });
+
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to rename chat",
+    });
+  }
+};
+
+export const pinChat = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const pinned = await togglePin(id);
+
+    res.json({
+      success: true,
+      pinned,
+    });
+
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to update pin status",
     });
   }
 };
